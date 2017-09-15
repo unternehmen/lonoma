@@ -1,5 +1,3 @@
--- dialog with coroutines
-
 local dialog = {}
 
 local inactivestate = {}
