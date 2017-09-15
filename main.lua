@@ -30,7 +30,7 @@ function love.load()
     love.window.setMode(realwidth, realheight)
     canvas = love.graphics.newCanvas(virtualwidth, virtualheight)
     scancanvas = love.graphics.newCanvas(virtualwidth, virtualheight)
-    
+   
     -- load music and sounds
     music   = love.audio.newSource('music/title.ogg')
     music:setLooping(true)
@@ -42,10 +42,10 @@ function love.load()
     bloop   = love.audio.newSource('sounds/bloop.wav', 'static')
     anchor  = love.audio.newSource('sounds/anchor.wav', 'static')
     currentbgmusic = nil
-    
+   
     -- debug font
     debugfont = love.graphics.newFont(14)
-    
+   
     -- load graphics
     comm = love.graphics.newImage('images/comm.png')
     logo = love.graphics.newImage('images/logo.png')
@@ -55,11 +55,11 @@ function love.load()
     scanline = love.graphics.newImage('images/scanline.png')
     jyesula = love.graphics.newImage('images/jyesula.png')
     ship = love.graphics.newImage('images/ship.png')
-	city = love.graphics.newImage('images/city.png')
-	backdrop = nil
-                     
+    city = love.graphics.newImage('images/city.png')
+    backdrop = nil
+                    
     -- start game in the title mode
-    switchmode('intro')
+    switchmode('title')
 end
 
 --- Copy (and decompress) an image and return the copy.
@@ -71,7 +71,7 @@ function copyimg(img)
     local height = img:getHeight()
 
     local canvas = love.graphics.newCanvas(width, height)
-    
+   
     love.graphics.setCanvas(canvas)
         love.graphics.push()
         love.graphics.origin()
@@ -82,9 +82,9 @@ function copyimg(img)
         love.graphics.setColor(origr, origg, origb, origa)
         love.graphics.pop()
     love.graphics.setCanvas()
-    
+   
     local data = canvas:newImageData()
-    
+   
     return love.graphics.newImage(data)
 end
 
@@ -96,16 +96,16 @@ end
 function ispicked(img, x, y)
     local width = img:getWidth()
     local height = img:getHeight()
-    
+   
     if x < 0 or x >= width or y < 0 or y >= height then
         return false
     end
-    
+   
     local image = copyimg(img)
     local data = img:getData()
-    
+   
     local r, g, b, a = data:getPixel(x, y)
-    
+   
     return a ~= 0
 end
 
@@ -120,11 +120,11 @@ function outlineimage(img)
     local width = img:getWidth()
     local height = img:getHeight()
     local data = img:getData()
-    
+   
     local canvas = love.graphics.newCanvas(width + 2, height + 2)
     local origcanvas = love.graphics.getCanvas()
     local origr, origg, origb, origa = love.graphics.getColor()
-    
+   
     love.graphics.setCanvas(canvas)
         love.graphics.clear(0, 0, 0, 0)
         love.graphics.push()
@@ -133,13 +133,13 @@ function outlineimage(img)
         for x = 0, width - 1 do
             for y = 0, height - 1 do
                 local r, g, b, a = data:getPixel(x, y)
-                
+               
                 if a ~= 0 then
                     local offsets = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
                     for _, offset in ipairs(offsets) do
                         local nx = x + offset[1]
                         local ny = y + offset[2]
-                        
+                       
                         pixbump = 1
                         if nx >= -1 and nx < width + 1
                            and ny >= -1 and ny < height + 1
@@ -147,12 +147,11 @@ function outlineimage(img)
                             if nx < 0 or nx >= width
                                or ny < 0 or ny >= height
                             then
-                                love.graphics.points(nx + 1, ny + 1 + pixbump)
+                                love.graphics.points(nx + 1, ny + 1)
                             else
                                 local r, g, b, a = data:getPixel(nx, ny)
                                 if a == 0 then
-                                    love.graphics.points(nx + 1, ny + 1
-                                                                 + pixbump)
+                                    love.graphics.points(nx + 1, ny + 1)
                                 end
                             end
                         end
@@ -167,7 +166,7 @@ function outlineimage(img)
     else
         love.graphics.setCanvas(origcanvas)
     end
-    
+   
     local newdata = canvas:newImageData()
     return love.graphics.newImage(newdata)
 end
@@ -179,15 +178,15 @@ states = {
 }
 
 function switchmode(to)
-	if mode and states[mode].quit then
-		states[mode].quit()
-	end
-	
+    if mode and states[mode].quit then
+        states[mode].quit()
+    end
+
     mode = to
-	
-	if states[mode].init then
-		states[mode].init()
-	end
+
+    if states[mode].init then
+        states[mode].init()
+    end
 end
 
 function playconfirm()
@@ -207,7 +206,7 @@ function primeobjects()
         if objects[key].picked == nil then
             objects[key].picked = false
         end
-        
+       
         if objects[key].outline == nil then
             objects[key].outline = outlineimage(objects[key].image)
         end
@@ -216,44 +215,51 @@ end
 
 function states.play.init()
     -- the list of objects, things in the game world which you can click
-    rooms.enter(rooms.ship)
+    rooms.enter(rooms.intro)
 end
 
 function states.play.update()
+    if rooms.current.update then
+        rooms.current.update()
+    end
     dialog.update()
 end
 
 function states.play.draw()
     love.graphics.setColor(255, 255, 255, 255)
     love.graphics.draw(backdrop, 0, 0)
-	local picked = nil
-    
-	-- draw all objects
+    if rooms.current.draw then
+        rooms.current.draw()
+    end
+
+    local picked = nil
+   
+    -- draw all objects
     for _, object in pairs(objects) do
         love.graphics.draw(object.image, object.xoff, object.yoff)
     end
-    
+   
     -- identify the picked object
     for _, object in pairs(objects) do
         if object.picked then
-			picked = object
+            picked = object
         end
     end
 
     -- draw an outline around the picked object
-	if picked then
-		love.graphics.draw(picked.outline, picked.xoff - 1, picked.yoff - 1)
-	end
-	
-	-- draw the active dialog if applicable
-	dialog.draw()
-	
-	-- draw the name of the picked object if there is no dialog
-	if not dialog.dialogisactive() then
-		if picked then
-			dialog.showtext(picked.name)
-		end
-	end
+    if picked then
+        love.graphics.draw(picked.outline, picked.xoff - 1, picked.yoff - 1)
+    end
+
+    -- draw the active dialog if applicable
+    dialog.draw()
+
+    -- draw the name of the picked object if there is no dialog
+    if not dialog.dialogisactive() then
+        if picked then
+            dialog.showtext(picked.name)
+        end
+    end
 end
 
 function states.play.keypressed(key)
@@ -284,14 +290,14 @@ end
 
 function states.play.mousepressed(x, y, button, istouch)
     -- if a dialog is waiting for the user, go to the next message
-	if dialog.dialogiswaiting() then
-		dialog.handleactivate()
-		return
-	end
-	
-	-- if a dialog is active but not waiting, do nothing
-	if dialog.dialogisactive() then
-	    return
+    if dialog.dialogiswaiting() then
+        dialog.handleactivate()
+        return
+    end
+
+    -- if a dialog is active but not waiting, do nothing
+    if dialog.dialogisactive() then
+        return
     end
 
     -- otherwise, if an object is picked, activate it
@@ -299,154 +305,14 @@ function states.play.mousepressed(x, y, button, istouch)
     for _, object in pairs(objects) do
         if object.picked and not done then
             object.picked = false
-			
+        
             dialog.start(object.action)
-			
+        
             done = true
         end
     end
 end
 
-
--- intro screen callbacks
-
-    messages = {
-        'Greetings, comrade...\nTime is short, so listen well.',
-        'You are en route\nto the moon colony.',
-		'I would go myself,\nbut Maya needs me.',
-    }
-
-function introaction()
-    say 'Greetings, comrade...\nTime is short, so listen well.'
-    say 'You are en route\nto the moon colony.'
-    say 'I would go myself,\nbut Maya needs me.'
-    say 'If, after all this time,\nthe colony is an embarassment,'
-    say 'then you must remind them\nthat it is I who rule them.'
-	say 'More details on how to\ndiscipline the colony'
-	say 'are in the manual\nsupplied with your ship.'
-	
-	local saidfarewell = false
-	while not saidfarewell do
-	    say 'Do you have any questions\nbefore I disconnect?'
-	    
-	    local result = choose('What is Lonoma?',
-	                          'Who are you?',
-	                          'No questions.')
-	    
-	    if result == 1 then
-	        say 'Lonoma is a lost territory\nof the empire.'
-	        say 'The first extraterrestrial\nterritory, in fact.'
-	        say 'However, we lost contact\nwith them centuries ago.'
-	        say 'Only recently have we\nmanaged to get a signal up...'
-	        say '... which is why you\'re\non your way right now.'
-	    elseif result == 2 then
-	        say '... Now is not the time\nfor jokes, Agent.'
-	    else
-	        saidfarewell = true
-	    end
-	end
-	
-    say 'Anyway,'
-    say 'I await your weekly report\non the colony.'
-    say 'Do not contact me\nfor any other reason.'
-    say 'Closing transmission...'
-    exitintro = true
-end
-
-function states.intro.init()
-    fadeopacity = 0       -- used for fading into the game
-    breaktimer  = 70      -- duration of pause before starting game (frames)
-    scanlineoffset = -108 -- offset of the scanline fade
-    introdialogstarted = false
-end
-
-function states.intro.update()
-	dialog.update()
-	
-	-- update the scanline animation
-    if scanlineoffset >= -39 then
-        scanlineoffset = -108
-    else
-        scanlineoffset = scanlineoffset + 1
-    end
-
-    if breaktimer > 0 then
-        breaktimer = breaktimer - 1
-    elseif fadeopacity < 255 and not exitintro then
-        fadeopacity = fadeopacity + 1
-        
-        if fadeopacity == 255 and not introdialogstarted then
-            shipmusic:play()
-			dialog.start(introaction)
-			introdialogstarted = true
-        end
-    end
-	
-	-- manage the intro's ending
-	if exitintro then
-        if fadeopacity > 0 then
-            fadeopacity = fadeopacity - 1
-        else
-            anchor:play()
-            switchmode('play')
-        end
-	end
-end
-
-function states.intro.draw()
-    love.graphics.setColor(255, 255, 255, fadeopacity)
-	
-	-- draw the communications panel
-    love.graphics.draw(comm, 0, 0)
-	
-	-- draw jyesula
-    love.graphics.setCanvas(scancanvas)
-        love.graphics.push()
-        love.graphics.scale(0.25, 0.25)
-        love.graphics.clear(0, 0, 0, 0)
-        
-        love.graphics.draw(scanline, 0, scanlineoffset + 69)
-        love.graphics.draw(scanline, 0, scanlineoffset)
-        love.graphics.pop()
-    love.graphics.setCanvas()
-    love.graphics.setCanvas(canvas)
-        love.graphics.push()
-        love.graphics.scale(0.25, 0.25)
-        love.graphics.clear(0, 0, 0, 0)
-        love.graphics.setBlendMode('alpha')
-        love.graphics.draw(jyesula, 0, 0)
-        love.graphics.setBlendMode('multiply')
-        love.graphics.draw(scancanvas)
-        love.graphics.setBlendMode('alpha')
-        love.graphics.pop()
-    love.graphics.setCanvas()
-    love.graphics.draw(canvas, 0, 0)
-	
-    -- draw message text
-	dialog.draw()
-end
-
-function states.intro.keypressed(key)
-    if dialog.dialogiswaiting() then
-        if key == kact then
-            dialog.handleactivate()
-        end
-    end
-end
-
-function states.intro.mousepressed(x, y, button, istouch)
-    -- if we are in a message, go to the next message
-	if dialog.dialogiswaiting() then
-		dialog.handleactivate()
-	end
-end
-
-function states.intro.mousemoved(x, y, dx, dy, istouch)
-    -- allow picking menu items
-    if dialog.dialogisactive() then
-        dialog.handlemousemoved(x, y, dx, dy, istouch)
-    end
-end
 
 -- title screen callbacks
 
@@ -470,7 +336,7 @@ end
 function startgame()
     confirm:play()
     music:stop()
-    switchmode('intro')
+    switchmode('play')
 end
 
 function states.title.keypressed(key)
@@ -489,23 +355,23 @@ end
 -- main callbacks
 
 function love.update()
-	if states[mode].update then
-		states[mode].update()
-	end
+    if states[mode].update then
+        states[mode].update()
+    end
 end
 
 function love.draw()
     love.graphics.clear()
     love.graphics.scale(scalefactor, scalefactor)
-	if states[mode].draw then
-		states[mode].draw()
-	end
+    if states[mode].draw then
+        states[mode].draw()
+    end
 end
 
 function love.keypressed(key)
-	if states[mode].keypressed then
-		states[mode].keypressed(key)
-	end
+    if states[mode].keypressed then
+        states[mode].keypressed(key)
+    end
 end
 
 function love.mousemoved(x, y, dx, dy, istouch)
