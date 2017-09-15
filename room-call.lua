@@ -52,7 +52,10 @@ local function introaction()
     local result = choose('Uh...', 'Is your refridgerator running?',
                           'Apologies, wrong number.')
 
-    if result == 2 then
+    if result == 1 then
+        say 'I told you not to\ncall until you have news.'
+        say 'Good luck, Agent.'
+    elseif result == 2 then
         say 'Please do your job, Agent.'
     elseif result == 3 then
         say 'Good luck, Agent.'
