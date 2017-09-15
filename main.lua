@@ -215,7 +215,6 @@ function primeobjects()
 end
 
 function states.play.init()
-    -- the list of objects, things in the game world which you can click
     rooms.enter(rooms.ship)
 end
 
@@ -255,11 +254,9 @@ function states.play.draw()
     -- draw the active dialog if applicable
     dialog.draw()
 
-    -- draw the name of the picked object if there is no dialog
-    if not dialog.isactive() then
-        if picked then
-            dialog.showtext(picked.name)
-        end
+    -- draw the name of the picked object
+    if picked then
+        dialog.showtext(picked.name)
     end
 end
 

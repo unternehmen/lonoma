@@ -193,7 +193,11 @@ end
 --- Show arbitrary text in the dialog box when the dialog is inactive.
 -- @param str  the string to show
 function dialog.showtext(str)
-    love.graphics.print(str, 0, virtualheight - 30)
+    if not dialog.isactive() then
+        love.graphics.setFont(font)
+        love.graphics.setColor(255, 255, 255, 255)
+        love.graphics.print(str, 0, virtualheight - 30)
+    end
 end
 
 
