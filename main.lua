@@ -41,6 +41,7 @@ function love.load()
     confirm = love.audio.newSource('sounds/confirm.wav', 'static')
     bloop   = love.audio.newSource('sounds/bloop.wav', 'static')
     anchor  = love.audio.newSource('sounds/anchor.wav', 'static')
+    dial    = love.audio.newSource('sounds/dial.wav', 'static')
     currentbgmusic = nil
 
     -- debug font

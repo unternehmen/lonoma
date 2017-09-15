@@ -5,6 +5,7 @@ local typingstate = {}
 local waitingstate = {}
 local choosingstate = {}
 local fadingstate = {}
+local pausingstate = {}
 
 -- The default dialog state is "inactive".
 dialog.currentstate = inactivestate
@@ -29,12 +30,6 @@ local function drawletterbox()
 end
 
 
--- Inactive state
-function inactivestate.draw()
-    drawletterbox()
-end
-
-
 -- Typing state
 
 function typingstate.update()
@@ -46,6 +41,7 @@ function typingstate.update()
         bloop:play()
 
         if dialog.lettersshown == #dialog.currentmessage then
+            dialog.animationtimer = 0
             dialog.currentstate = waitingstate
         end
     end
@@ -54,8 +50,6 @@ end
 function typingstate.draw()
     assert(dialog.currentmessage ~= nil, 'dialog.currentmessage is nil')
     assert(dialog.lettersshown ~= nil, 'dialog.lettersshown is nil')
-
-    drawletterbox()
 
     love.graphics.setFont(font)
     love.graphics.setColor(255, 255, 255, 255)
@@ -67,17 +61,22 @@ end
 
 -- Waiting state
 
+function waitingstate.update()
+    assert(dialog.animationtimer ~= nil, 'dialog.animationtimer is nil')
+
+    dialog.animationtimer = (dialog.animationtimer + 1) % 50
+end
+
 function waitingstate.draw()
     assert(dialog.currentmessage ~= nil, 'dialog.currentmessage is nil')
-
-    drawletterbox()
+    assert(dialog.animationtimer ~= nil, 'dialog.animationtimer is nil')
 
     love.graphics.setFont(font)
     love.graphics.setColor(255, 255, 255, 255)
     love.graphics.print(dialog.currentmessage, 0, 90)
 
-    love.graphics.setColor(255, 255, 255, 255)
-    love.graphics.rectangle('fill', virtualwidth - 16, virtualheight - 16, 16, 16)
+    love.graphics.setColor(255, 255, 255, (255 / 25) * math.abs(dialog.animationtimer - 25))
+    love.graphics.rectangle('fill', virtualwidth - 5, virtualheight - 5, 3, 3)
 end
 
 function waitingstate.mousepressed(x, y, button, istouch)
@@ -91,8 +90,6 @@ end
 
 function choosingstate.draw()
     assert(dialog.choices ~= nil, 'dialog.choices is nil')
-
-    drawletterbox()
 
     -- Draw the choices.
     love.graphics.setFont(font)
@@ -140,6 +137,20 @@ function choosingstate.mousepressed(x, y, button, istouch)
 end
 
 
+-- Pausing state
+
+function pausingstate.update()
+    requirethread()
+    assert(dialog.pausetimer ~= nil, 'dialog.pausetimer is nil')
+
+    if dialog.pausetimer == 0 then
+        coroutine.resume(dialog.thread)
+    else
+        dialog.pausetimer = dialog.pausetimer - 1
+    end
+end
+
+
 -- Fading state
 
 function fadingstate.update()
@@ -174,8 +185,6 @@ end
 function fadingstate.draw()
     assert(dialog.fadeopacity ~= nil, 'dialog.fadeopacity is nil')
 
-    drawletterbox()
-
     love.graphics.setColor(0, 0, 0, dialog.fadeopacity)
     love.graphics.rectangle('fill', 0, 0, virtualwidth, virtualheight)
 end
@@ -208,7 +217,10 @@ do
     end
 
     dialog.update       = statecallerproc('update')
-    dialog.draw         = statecallerproc('draw')
+    dialog.draw         = function ()
+        drawletterbox()
+        runifdefined(dialog.currentstate.draw)
+    end
     dialog.mousemoved   = statecallerproc('mousemoved')
     dialog.mousepressed = statecallerproc('mousepressed')
     dialog.keypressed   = statecallerproc('keypressed')
@@ -236,6 +248,14 @@ function dialog.choose(...)
     dialog.selectedchoice = nil
     dialog.currentstate = inactivestate
     return result
+end
+
+function dialog.pause(duration)
+    dialog.pausetimer = duration
+    dialog.currentstate = pausingstate
+    coroutine.yield()
+    dialog.pausetimer = nil
+    dialog.currentstate = inactivestate
 end
 
 function dialog.fadein(duration)
