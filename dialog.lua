@@ -97,15 +97,18 @@ function choosingstate.draw()
     for i, choice in ipairs(dialog.choices) do
         local yoff = (i - 1) * 10
 
+
         -- Hilight the selected choice.
         if i == dialog.selectedchoice then
             love.graphics.setColor(0, 0, 255, 255)
             love.graphics.rectangle('fill',
                                     0, virtualheight - 30 + yoff,
                                     virtualwidth, 10)
+            love.graphics.setColor(255, 255, 255, 255)
+        else
+            love.graphics.setColor(100, 100, 255, 255)
         end
 
-        love.graphics.setColor(255, 255, 255, 255)
         love.graphics.print(dialog.choices[i], 0, virtualheight - 30 + yoff)
     end
 end

@@ -336,13 +336,13 @@ function startgame()
 end
 
 function states.title.keypressed(key)
-    if key == kact then
+    if key == kact and fadeopacity >= 100 then
         startgame()
     end
 end
 
 function states.title.mousepressed(x, y, dx, dy, istouch)
-    if fadeopacity == 255 then
+    if fadeopacity >= 100 then
         startgame()
     end
 end
