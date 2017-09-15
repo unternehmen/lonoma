@@ -15,7 +15,7 @@ function room.draw()
         love.graphics.push()
         love.graphics.scale(0.25, 0.25)
         love.graphics.clear(0, 0, 0, 0)
-       
+
         love.graphics.draw(scanline, 0, scanlineoffset + 69)
         love.graphics.draw(scanline, 0, scanlineoffset)
         love.graphics.pop()
@@ -51,11 +51,11 @@ local function introaction()
     local saidfarewell = false
     while not saidfarewell do
         say 'Do you have any questions\nbefore I disconnect?'
-       
+
         local result = choose('What is Lonoma?',
                               'Who are you?',
                               'No questions.')
-       
+
         if result == 1 then
             say 'Lonoma is a lost territory\nof the empire.'
             say 'The first extraterrestrial\nterritory, in fact.'

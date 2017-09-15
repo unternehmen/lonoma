@@ -9,7 +9,7 @@ function room.enter()
     -- switch to ship music and backdrop
     switchbgmusic(shipmusic)
     backdrop = love.graphics.newImage('images/ship.png')
-   
+
     -- define room objects
     objects = {
         hatch = {
@@ -21,13 +21,13 @@ function room.enter()
                 if tookthenotebook then
                     local result = choose('@Leave the ship.',
                                           'Nevermind.')
-                                         
+
                     if result == 1 then
                         if not hasleftshipbefore then
                             say 'Let\'s go!'
                             hasleftshipbefore = true
                         end
-                   
+
                         rooms.enter(rooms.city)
                     end
                 else
@@ -43,9 +43,9 @@ function room.enter()
             action = function ()
                 say 'The chairman would kill me\nif I called him.'
                 say '...'
-               
+
                 local result = choose('@Call the chairman.', 'Back away slowly.')
-               
+
                 if result == 1 then
                     rooms.enter(rooms.call)
                 end
@@ -88,9 +88,9 @@ function room.enter()
             image = love.graphics.newImage('images/manual.png'),
             action = function ()
                 say 'Manual of Bythanthian Agents:\nIn honor of the Chairman'
-               
+
                 local result = choose('@Read the first paragraph.', 'Put down the manual')
-               
+
                 if result == 1 then
                     say 'Equalize the empire.\nMake examples of outliers.'
                     say 'By the grace of the\nChairman, you have a weapon.'
@@ -99,7 +99,7 @@ function room.enter()
             end
         }
     }
-   
+
     -- load the state of the room
     if tookthenotebook then
         takenotebook()

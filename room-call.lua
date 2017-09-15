@@ -15,7 +15,7 @@ function room.draw()
         love.graphics.push()
         love.graphics.scale(0.25, 0.25)
         love.graphics.clear(0, 0, 0, 0)
-       
+
         love.graphics.draw(scanline, 0, scanlineoffset + 69)
         love.graphics.draw(scanline, 0, scanlineoffset)
         love.graphics.pop()

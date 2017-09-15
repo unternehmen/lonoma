@@ -30,7 +30,7 @@ function love.load()
     love.window.setMode(realwidth, realheight)
     canvas = love.graphics.newCanvas(virtualwidth, virtualheight)
     scancanvas = love.graphics.newCanvas(virtualwidth, virtualheight)
-   
+
     -- load music and sounds
     music   = love.audio.newSource('music/title.ogg')
     music:setLooping(true)
@@ -42,10 +42,10 @@ function love.load()
     bloop   = love.audio.newSource('sounds/bloop.wav', 'static')
     anchor  = love.audio.newSource('sounds/anchor.wav', 'static')
     currentbgmusic = nil
-   
+
     -- debug font
     debugfont = love.graphics.newFont(14)
-   
+
     -- load graphics
     comm = love.graphics.newImage('images/comm.png')
     logo = love.graphics.newImage('images/logo.png')
@@ -57,7 +57,7 @@ function love.load()
     ship = love.graphics.newImage('images/ship.png')
     city = love.graphics.newImage('images/city.png')
     backdrop = nil
-                    
+
     -- start game in the title mode
     switchmode('title')
 end
@@ -71,7 +71,7 @@ function copyimg(img)
     local height = img:getHeight()
 
     local canvas = love.graphics.newCanvas(width, height)
-   
+
     love.graphics.setCanvas(canvas)
         love.graphics.push()
         love.graphics.origin()
@@ -82,9 +82,9 @@ function copyimg(img)
         love.graphics.setColor(origr, origg, origb, origa)
         love.graphics.pop()
     love.graphics.setCanvas()
-   
+
     local data = canvas:newImageData()
-   
+
     return love.graphics.newImage(data)
 end
 
@@ -96,16 +96,16 @@ end
 function ispicked(img, x, y)
     local width = img:getWidth()
     local height = img:getHeight()
-   
+
     if x < 0 or x >= width or y < 0 or y >= height then
         return false
     end
-   
+
     local image = copyimg(img)
     local data = img:getData()
-   
+
     local r, g, b, a = data:getPixel(x, y)
-   
+
     return a ~= 0
 end
 
@@ -120,11 +120,11 @@ function outlineimage(img)
     local width = img:getWidth()
     local height = img:getHeight()
     local data = img:getData()
-   
+
     local canvas = love.graphics.newCanvas(width + 2, height + 2)
     local origcanvas = love.graphics.getCanvas()
     local origr, origg, origb, origa = love.graphics.getColor()
-   
+
     love.graphics.setCanvas(canvas)
         love.graphics.clear(0, 0, 0, 0)
         love.graphics.push()
@@ -133,13 +133,13 @@ function outlineimage(img)
         for x = 0, width - 1 do
             for y = 0, height - 1 do
                 local r, g, b, a = data:getPixel(x, y)
-               
+
                 if a ~= 0 then
                     local offsets = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
                     for _, offset in ipairs(offsets) do
                         local nx = x + offset[1]
                         local ny = y + offset[2]
-                       
+
                         pixbump = 1
                         if nx >= -1 and nx < width + 1
                            and ny >= -1 and ny < height + 1
@@ -166,7 +166,7 @@ function outlineimage(img)
     else
         love.graphics.setCanvas(origcanvas)
     end
-   
+
     local newdata = canvas:newImageData()
     return love.graphics.newImage(newdata)
 end
@@ -206,7 +206,7 @@ function primeobjects()
         if objects[key].picked == nil then
             objects[key].picked = false
         end
-       
+
         if objects[key].outline == nil then
             objects[key].outline = outlineimage(objects[key].image)
         end
@@ -233,12 +233,12 @@ function states.play.draw()
     end
 
     local picked = nil
-   
+
     -- draw all objects
     for _, object in pairs(objects) do
         love.graphics.draw(object.image, object.xoff, object.yoff)
     end
-   
+
     -- identify the picked object
     for _, object in pairs(objects) do
         if object.picked then
@@ -255,7 +255,7 @@ function states.play.draw()
     dialog.draw()
 
     -- draw the name of the picked object if there is no dialog
-    if not dialog.dialogisactive() then
+    if not dialog.isactive() then
         if picked then
             dialog.showtext(picked.name)
         end
@@ -263,17 +263,15 @@ function states.play.draw()
 end
 
 function states.play.keypressed(key)
-    if dialog.dialogiswaiting() then
-        if key == kact then
-            dialog.handleactivate()
-        end
+    if dialog.isgrabbing() then
+	    dialog.keypressed(key)
     end
 end
 
 function states.play.mousemoved(x, y, dx, dy, istouch)
     -- pick any object under the cursor
-    if dialog.dialogisactive() then
-        dialog.handlemousemoved(x, y, dx, dy, istouch)
+    if dialog.isactive() then
+        dialog.mousemoved(x, y, dx, dy, istouch)
     elseif y / scalefactor < virtualheight - 30 then
         for _, object in pairs(objects) do
             object.picked = ispicked(object.image,
@@ -289,14 +287,14 @@ function states.play.mousemoved(x, y, dx, dy, istouch)
 end
 
 function states.play.mousepressed(x, y, button, istouch)
-    -- if a dialog is waiting for the user, go to the next message
-    if dialog.dialogiswaiting() then
-        dialog.handleactivate()
+    -- if a dialog is waiting for the user, let it process the press
+    if dialog.isgrabbing() then
+        dialog.mousepressed(x, y, button, istouch)
         return
     end
 
-    -- if a dialog is active but not waiting, do nothing
-    if dialog.dialogisactive() then
+    -- if a dialog is active, do nothing
+    if dialog.isactive() then
         return
     end
 
@@ -305,9 +303,9 @@ function states.play.mousepressed(x, y, button, istouch)
     for _, object in pairs(objects) do
         if object.picked and not done then
             object.picked = false
-        
+
             dialog.start(object.action)
-        
+
             done = true
         end
     end
@@ -368,20 +366,20 @@ function love.draw()
     end
 end
 
-function love.keypressed(key)
+function love.keypressed(...)
     if states[mode].keypressed then
-        states[mode].keypressed(key)
+        states[mode].keypressed(...)
     end
 end
 
-function love.mousemoved(x, y, dx, dy, istouch)
+function love.mousemoved(...)
     if states[mode].mousemoved then
-        states[mode].mousemoved(x, y, dx, dy, istouch)
+        states[mode].mousemoved(...)
     end
 end
 
-function love.mousepressed(x, y, button, istouch)
+function love.mousepressed(...)
     if states[mode].mousepressed then
-        states[mode].mousepressed(x, y, button, istouch)
+        states[mode].mousepressed(...)
     end
 end

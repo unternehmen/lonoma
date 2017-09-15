@@ -1,27 +1,230 @@
 -- dialog with coroutines
 
-local dialog = {
-    lettersshown = nil,
-    currentmessage = nil,
-    thread = nil,
-    choices = nil,
-    selectedchoice = nil
-}
+local dialog = {}
+
+local inactivestate = {}
+local typingstate = {}
+local waitingstate = {}
+local choosingstate = {}
+local fadingstate = {}
+
+-- Common subroutines
+
+--- Require that a dialog thread exists.
+-- Many states in the dialog engine resume the thread which controls
+-- dialogs (dialog.thread).  These states must call requirethread()
+-- at the beginning of any function which resumes dialog.thread
+-- in order to ensure that the environment is sane.
+local function requirethread()
+    assert(dialog.thread ~= nil, 'attempted dialog without thread')
+end
+
+local function drawletterbox()
+    love.graphics.setColor(0, 0, 0, 255)
+    love.graphics.rectangle('fill',
+                            0, virtualheight - 30,
+                            virtualwidth, 30)
+end
+
+
+-- Typing state
+
+function typingstate.update()
+    assert(dialog.lettersshown ~= nil, 'dialog.lettersshown is undefined')
+
+    if dialog.lettersshown < #dialog.currentmessage then
+        bloop:stop()
+        dialog.lettersshown = dialog.lettersshown + 1
+        bloop:play()
+
+        if dialog.lettersshown == #dialog.currentmessage then
+            dialog.currentstate = waitingstate
+        end
+    end
+end
+
+function typingstate.draw()
+    assert(dialog.currentmessage ~= nil, 'dialog.currentmessage is nil')
+    assert(dialog.lettersshown ~= nil, 'dialog.lettersshown is nil')
+
+    drawletterbox()
+
+    love.graphics.setFont(font)
+    love.graphics.setColor(255, 255, 255, 255)
+    love.graphics.print(string.sub(dialog.currentmessage,
+                                   0, dialog.lettersshown),
+                        0, virtualheight - 30)
+end
+
+
+-- Waiting state
+
+function waitingstate.draw()
+    assert(dialog.currentmessage ~= nil, 'dialog.currentmessage is nil')
+
+    drawletterbox()
+
+    love.graphics.setFont(font)
+    love.graphics.setColor(255, 255, 255, 255)
+    love.graphics.print(dialog.currentmessage, 0, 90)
+
+    love.graphics.setColor(255, 255, 255, 255)
+    love.graphics.rectangle('fill', virtualwidth - 16, virtualheight - 16, 16, 16)
+end
+
+function waitingstate.mousepressed(x, y, button, istouch)
+    requirethread()
+
+    coroutine.resume(dialog.thread)
+end
+
+
+-- Choosing state
+
+function choosingstate.draw()
+    assert(dialog.choices ~= nil, 'dialog.choices is nil')
+
+    drawletterbox()
+
+    -- Draw the choices.
+    love.graphics.setFont(font)
+
+    for i, choice in ipairs(dialog.choices) do
+        local yoff = (i - 1) * 10
+
+        -- Hilight the selected choice.
+        if i == dialog.selectedchoice then
+            love.graphics.setColor(0, 0, 255, 255)
+            love.graphics.rectangle('fill',
+                                    0, virtualheight - 30 + yoff,
+                                    virtualwidth, 10)
+        end
+
+        love.graphics.setColor(255, 255, 255, 255)
+        love.graphics.print(dialog.choices[i], 0, virtualheight - 30 + yoff)
+    end
+end
+
+function choosingstate.mousemoved(x, y, dx, dy, istouch)
+    assert(dialog.choices ~= nil, 'dialog.choices is nil')
+
+    x = x / scalefactor
+    y = y / scalefactor
+
+    if y < virtualheight - 30 or y > virtualheight
+       or x < 0 or x > virtualwidth then
+        dialog.selectedchoice = nil
+    else
+        dialog.selectedchoice = math.floor((y - virtualheight + 30) / 10) + 1
+
+        if dialog.selectedchoice > #dialog.choices then
+            dialog.selectedchoice = nil
+        end
+    end
+end
+
+function choosingstate.mousepressed(x, y, button, istouch)
+    requirethread()
+
+    if dialog.selectedchoice then
+        coroutine.resume(dialog.thread, dialog.selectedchoice)
+    end
+end
+
+
+-- Fading state
+
+function fadingstate.update()
+    requirethread()
+    assert(dialog.fadedirection ~= nil, 'dialog.fadedirection is undefined')
+    assert(dialog.fadeopacity ~= nil, 'dialog.fadeopacity is undefined')
+    assert(dialog.fadeduration ~= nil, 'dialog.fadeduration is undefined')
+
+    local direction = 0
+
+    if dialog.fadedirection == 'in' then
+        direction = -1
+    else
+        direction = 1
+    end
+
+    local diff = (255 / dialog.fadeduration) * direction
+
+    dialog.fadeopacity = dialog.fadeopacity + diff
+
+    if dialog.fadeopacity < 0 then
+        dialog.fadeopacity = 0
+    elseif dialog.fadeopacity > 255 then
+        dialog.fadeopacity = 255
+    end
+
+    if dialog.fadeopacity == 0 or dialog.fadeopacity == 255 then
+        coroutine.resume(dialog.thread)
+    end
+end
+
+function fadingstate.draw()
+    assert(dialog.fadeopacity ~= nil, 'dialog.fadeopacity is nil')
+
+    love.graphics.setColor(0, 0, 0, dialog.fadeopacity)
+    love.graphics.rectangle('fill', 0, 0, virtualwidth, virtualheight)
+end
+
+
+--- Show arbitrary text in the dialog box when the dialog is inactive.
+-- @param str  the string to show
+function dialog.showtext(str)
+    love.graphics.print(str, 0, virtualheight - 30)
+end
+
+
+-- Generate dialog callbacks (e.g., dialog.draw, dialog.update)
+
+do
+    local function donothing() end
+
+    local function runifdefined(proc, ...)
+        if proc == nil then
+            proc = donothing
+        end
+
+        proc(...)
+    end
+
+    local function statecallerproc(name)
+        return function (...)
+            runifdefined(dialog.currentstate[name], ...)
+        end
+    end
+
+    dialog.update       = statecallerproc('update')
+    dialog.draw         = statecallerproc('draw')
+    dialog.mousemoved   = statecallerproc('mousemoved')
+    dialog.mousepressed = statecallerproc('mousepressed')
+    dialog.keypressed   = statecallerproc('keypressed')
+end
+
+
+-- Dialog operators
 
 function dialog.say(str)
     dialog.lettersshown = 0
     dialog.currentmessage = str
+    dialog.currentstate = typingstate
     coroutine.yield()
     dialog.lettersshown = nil
     dialog.currentmessage = nil
+    dialog.currentstate = inactivestate
 end
 
 function dialog.choose(...)
     dialog.choices = {...}
     dialog.selectedchoice = nil
+    dialog.currentstate = choosingstate
     local result = coroutine.yield()
     dialog.choices = nil
     dialog.selectedchoice = nil
+    dialog.currentstate = inactivestate
     return result
 end
 
@@ -29,20 +232,24 @@ function dialog.fadein(duration)
     dialog.fadeopacity = 255
     dialog.fadedirection = 'in'
     dialog.fadeduration = duration
+    dialog.currentstate = fadingstate
     coroutine.yield()
     dialog.fadeopacity = nil
     dialog.fadedirection = nil
     dialog.fadeduration = nil
+    dialog.currentstate = inactivestate
 end
 
 function dialog.fadeout(duration)
     dialog.fadeopacity = 0
     dialog.fadedirection = 'out'
     dialog.fadeduration = duration
+    dialog.currentstate = fadingstate
     coroutine.yield()
     dialog.fadeopacity = nil
     dialog.fadedirection = nil
     dialog.fadeduration = nil
+    dialog.currentstate = inactivestate
 end
 
 --- Start a dialog.
@@ -55,150 +262,26 @@ end
 --- Return whether the dialog system is fading.
 -- @return whether the dialog system is fading
 local function isfading()
-    return dialog.fadeopacity       ~= nil
-           and dialog.fadedirection ~= nil
-           and dialog.fadeduration  ~= nil
+    return dialog.currentstate == fadingstate
 end
 
 --- Return whether a choice is being presented to the user.
 -- @return whether a choice is being presented to the user
 local function isgivingchoice()
-    return dialog.choices ~= nil
+    return dialog.currentstate == choosingstate
 end
 
 --- Return whether a dialog is currently active.
 -- @return whether it is active
-function dialog.dialogisactive()
-    return dialog.currentmessage ~= nil or isgivingchoice() or isfading()
+function dialog.isactive()
+    return dialog.currentstate ~= inactivestate
 end
 
---- Return whether the current dialog is waiting for user input.
--- @return  whether the dialog is waiting for user input
-function dialog.dialogiswaiting()
-    return dialog.dialogisactive()
-           and not isfading()
-           and (isgivingchoice()
-                or dialog.lettersshown == #dialog.currentmessage)
-end
-
---- Activate the dialog in both message and choice mode.
-function dialog.handleactivate()
-    if isgivingchoice() then
-        if dialog.selectedchoice then
-            coroutine.resume(dialog.thread, dialog.selectedchoice)
-        end
-    elseif not isfading() then
-        coroutine.resume(dialog.thread)
-    end
-end
-
---- Handle mouse movement.
--- This should be run when dialogs are active so that the dialog can
--- use mouse movement information (e.g., when presenting a choice).
--- @param x the x position of the cursor
--- @param y the y position of the cursor
--- @param dx the change in the x position of the cursor
--- @param dy the change in the y position of the cursor
--- @param istouch whether the mouse is a touchscreen
-function dialog.handlemousemoved(x, y, dx, dy, istouch)
-    x = x / scalefactor
-    y = y / scalefactor
-   
-    if isgivingchoice() then
-        local numberofchoices = #dialog.choices
-   
-        if y < virtualheight - 30 or y > virtualheight
-           or x < 0 or x > virtualwidth then
-            dialog.selectedchoice = nil
-        else
-            dialog.selectedchoice = math.floor((y - virtualheight + 30) / 10)
-                                    + 1
-            if dialog.selectedchoice > numberofchoices then
-                dialog.selectedchoice = nil
-            end
-        end
-    end
-end
-
---- Update the state of the dialog.
--- When a dialog is active and the message is not completely shown,
--- this shows more letters and plays a sound.  This should be run
--- every frame or every few frames in any context in which a dialog
--- may appear.
-function dialog.update()
-    if isfading() then
-        local direction = 0
-    
-        if dialog.fadedirection == 'in' then
-            direction = -1
-        else
-            direction = 1
-        end
-    
-        local diff = (255 / dialog.fadeduration) * direction
-    
-        dialog.fadeopacity = dialog.fadeopacity + diff
-    
-        if dialog.fadeopacity < 0 then
-            dialog.fadeopacity = 0
-        elseif dialog.fadeopacity > 255 then
-            dialog.fadeopacity = 255
-        end
-    
-        if dialog.fadeopacity == 0 or dialog.fadeopacity == 255 then
-            coroutine.resume(dialog.thread)
-        end
-    elseif dialog.dialogisactive() and not isgivingchoice() then
-        if dialog.lettersshown < #dialog.currentmessage then
-            bloop:stop()
-            dialog.lettersshown = dialog.lettersshown + 1
-            bloop:play()
-        end
-    end
-end
-
---- Draw the dialog box and any text within it.
--- This draws the dialog's black box and dialog text within it.
--- This only draws text if a dialog is currently active.
-function dialog.draw()
-    -- Draw fade, if necessary
-    if isfading() then
-        love.graphics.setColor(0, 0, 0, dialog.fadeopacity)
-        love.graphics.rectangle('fill', 0, 0, virtualwidth, virtualheight)
-    end
-
-    love.graphics.setColor(0, 0, 0, 255)
-    love.graphics.rectangle('fill', 0, virtualheight - 30,
-                            virtualwidth, 30)
-    love.graphics.setFont(font)
-    love.graphics.setColor(255, 255, 255, 255)
-   
-    if isgivingchoice() then
-        -- Draw the choices.
-        for i, choice in ipairs(dialog.choices) do
-            local yoff = (i - 1) * 10
-            if i == dialog.selectedchoice then
-                love.graphics.setColor(0, 0, 255, 255)
-                love.graphics.rectangle('fill',
-                                        0, virtualheight - 30 + yoff,
-                                        virtualwidth, 10)
-            end
-            love.graphics.setColor(255, 255, 255, 255)
-            love.graphics.print(dialog.choices[i], 0, virtualheight - 30 + yoff)
-        end
-    elseif dialog.dialogisactive() and not isfading() then
-        -- Draw the current message of the dialog.
-        love.graphics.print(string.sub(dialog.currentmessage,
-                                       0, dialog.lettersshown),
-                            0, 90)
-    end
-end
-
---- Show arbitrary text in the dialog box.
--- This has no effect on dialog.draw() or the currently active dialog.
--- @param str  the string to show
-function dialog.showtext(str)
-    love.graphics.print(str, 0, virtualheight - 30)
+--- Return whether the current dialog is grabbing the user input.
+-- @return  whether the dialog is grabbing the user input
+function dialog.isgrabbing()
+    return dialog.currentstate == waitingstate
+           or dialog.currentstate == choosingstate
 end
 
 return dialog
