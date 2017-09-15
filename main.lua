@@ -215,7 +215,7 @@ end
 
 function states.play.init()
     -- the list of objects, things in the game world which you can click
-    rooms.enter(rooms.intro)
+    rooms.enter(rooms.ship)
 end
 
 function states.play.update()

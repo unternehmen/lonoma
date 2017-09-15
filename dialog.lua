@@ -8,6 +8,10 @@ local waitingstate = {}
 local choosingstate = {}
 local fadingstate = {}
 
+-- The default dialog state is "inactive".
+dialog.currentstate = inactivestate
+
+
 -- Common subroutines
 
 --- Require that a dialog thread exists.
@@ -24,6 +28,12 @@ local function drawletterbox()
     love.graphics.rectangle('fill',
                             0, virtualheight - 30,
                             virtualwidth, 30)
+end
+
+
+-- Inactive state
+function inactivestate.draw()
+    drawletterbox()
 end
 
 
@@ -165,6 +175,8 @@ end
 
 function fadingstate.draw()
     assert(dialog.fadeopacity ~= nil, 'dialog.fadeopacity is nil')
+
+    drawletterbox()
 
     love.graphics.setColor(0, 0, 0, dialog.fadeopacity)
     love.graphics.rectangle('fill', 0, 0, virtualwidth, virtualheight)
