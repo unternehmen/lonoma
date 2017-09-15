@@ -129,6 +129,7 @@ function outlineimage(img)
         love.graphics.clear(0, 0, 0, 0)
         love.graphics.push()
         love.graphics.origin()
+        love.graphics.translate(1.5, 1.5)
         love.graphics.setColor(255, 255, 255, 255)
         for x = 0, width - 1 do
             for y = 0, height - 1 do
@@ -140,18 +141,17 @@ function outlineimage(img)
                         local nx = x + offset[1]
                         local ny = y + offset[2]
 
-                        pixbump = 1
                         if nx >= -1 and nx < width + 1
                            and ny >= -1 and ny < height + 1
                         then
                             if nx < 0 or nx >= width
                                or ny < 0 or ny >= height
                             then
-                                love.graphics.points(nx + 1, ny + 1)
+                                love.graphics.points(nx, ny)
                             else
                                 local r, g, b, a = data:getPixel(nx, ny)
                                 if a == 0 then
-                                    love.graphics.points(nx + 1, ny + 1)
+                                    love.graphics.points(nx, ny)
                                 end
                             end
                         end
