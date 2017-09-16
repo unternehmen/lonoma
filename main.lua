@@ -50,9 +50,10 @@ function love.load()
     -- load graphics
     comm = love.graphics.newImage('images/comm.png')
     logo = love.graphics.newImage('images/logo.png')
-    font = love.graphics.newImageFont('images/font.png',
+    font = love.graphics.newImageFont('images/smallfont.png',
                                       'ABCDEFGHIJKLMNOPQRSTUVWXYZ '
-                                      .. 'abcdefghijklmnopqrstuvwxyz,.!?@:>\'')
+                                      .. 'abcdefghijklmnopqrstuvwxyz,.!?@:>\''
+                                      .. '|$*')
     scanline = love.graphics.newImage('images/scanline.png')
     jyesula = love.graphics.newImage('images/jyesula.png')
     ship = love.graphics.newImage('images/ship.png')

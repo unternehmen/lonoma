@@ -95,7 +95,7 @@ function choosingstate.draw()
     love.graphics.setFont(font)
 
     for i, choice in ipairs(dialog.choices) do
-        local yoff = (i - 1) * 10
+        local yoff = (i - 1) * 6
 
 
         -- Hilight the selected choice.
@@ -103,7 +103,7 @@ function choosingstate.draw()
             love.graphics.setColor(0, 0, 255, 255)
             love.graphics.rectangle('fill',
                                     0, virtualheight - 30 + yoff,
-                                    virtualwidth, 10)
+                                    virtualwidth, 6)
             love.graphics.setColor(255, 255, 255, 255)
         else
             love.graphics.setColor(100, 100, 255, 255)
@@ -123,7 +123,7 @@ function choosingstate.mousemoved(x, y, dx, dy, istouch)
        or x < 0 or x > virtualwidth then
         dialog.selectedchoice = nil
     else
-        dialog.selectedchoice = math.floor((y - virtualheight + 30) / 10) + 1
+        dialog.selectedchoice = math.floor((y - virtualheight + 30) / 6) + 1
 
         if dialog.selectedchoice > #dialog.choices then
             dialog.selectedchoice = nil
