@@ -1,6 +1,7 @@
 dialog = love.filesystem.load('dialog.lua')()
 say = dialog.say
 choose = dialog.choose
+choosecancelable = dialog.choosecancelable
 rooms = love.filesystem.load('rooms.lua')()
 
 function switchbgmusic(music)

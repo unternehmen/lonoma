@@ -121,8 +121,10 @@ function choosingstate.mousemoved(x, y, dx, dy, istouch)
 
     if y < virtualheight - 30 or y > virtualheight
        or x < 0 or x > virtualwidth then
+        dialog.pointeronpanel = false
         dialog.selectedchoice = nil
     else
+        dialog.pointeronpanel = true
         dialog.selectedchoice = math.floor((y - virtualheight + 30) / 6) + 1
 
         if dialog.selectedchoice > #dialog.choices then
@@ -136,6 +138,12 @@ function choosingstate.mousepressed(x, y, button, istouch)
 
     if dialog.selectedchoice then
         coroutine.resume(dialog.thread, dialog.selectedchoice)
+    elseif not dialog.pointeronpanel and dialog.cancelable then
+        dialog.choices = nil
+        dialog.selectedchoice = nil
+        dialog.pointeronpanel = nil
+        dialog.currentstate = inactivestate
+        dialog.thread = nil
     end
 end
 
@@ -246,14 +254,30 @@ function dialog.say(str)
     dialog.currentstate = inactivestate
 end
 
-function dialog.choose(...)
+local function dochoose(...)
     dialog.choices = {...}
     dialog.selectedchoice = nil
+    dialog.pointeronpanel = false
     dialog.currentstate = choosingstate
     local result = coroutine.yield()
     dialog.choices = nil
     dialog.selectedchoice = nil
+    dialog.pointeronpanel = nil
     dialog.currentstate = inactivestate
+    return result
+end
+
+function dialog.choosecancelable(...)
+    dialog.cancelable = true
+    local result = dochoose(...)
+    dialog.cancelable = nil
+    return result
+end
+
+function dialog.choose(...)
+    dialog.cancelable = false
+    local result = dochoose(...)
+    dialog.cancelable = nil
     return result
 end
 

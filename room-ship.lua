@@ -18,10 +18,10 @@ function room.enter()
             name = 'You see the exit hatch.',
             image = love.graphics.newImage('images/hatch.png'),
             action = function ()
-                local result = choose('|Look at the hatch.',
-                                      '@Go through the hatch..',
-                                      '$Talk to the hatch.',
-                                      'Nevermind.')
+                local result = choosecancelable('|Look at the hatch.',
+                                                '@Go through the hatch..',
+                                                '$Talk to the hatch.',
+                                                'Nevermind.')
 
                 if result == 1 then
                     say 'You meditate on the word painted\non the hatch.  Is it a command?\nA suggestion?  A declaration?'
@@ -32,6 +32,7 @@ function room.enter()
                             hasleftshipbefore = true
                         end
 
+                        dialog.fadeout(100)
                         rooms.enter(rooms.city)
                     else
                         say 'You still need your notebook.'
@@ -48,10 +49,10 @@ function room.enter()
             name = 'You see your computaterm.',
             image = love.graphics.newImage('images/commobj.png'),
             action = function ()
-                local result = choose('|Look at the computaterm.',
-                                      '@Use the computaterm.',
-                                      '$Talk to the computaterm.',
-                                      'Nevermind.')
+                local result = choosecancelable('|Look at the computaterm.',
+                                                '@Use the computaterm.',
+                                                '$Talk to the computaterm.',
+                                                'Nevermind.')
 
                 if result == 1 then
                     say 'This baby\'s a BYTH surplus issue, standard\nweight computaplex with a preinstalled\nParoliware BIOS.'
@@ -76,10 +77,10 @@ function room.enter()
             name = 'You see your katana.',
             image = love.graphics.newImage('images/sword.png'),
             action = function ()
-                local result = choose('|Look at the katana.',
-                                      '@Use the katana.',
-                                      '$Talk to the katana.',
-                                      'Nevermind.')
+                local result = choosecancelable('|Look at the katana.',
+                                                '@Use the katana.',
+                                                '$Talk to the katana.',
+                                                'Nevermind.')
 
                 if result == 1 then
 
@@ -109,16 +110,16 @@ function room.enter()
             name = 'You see a small library of novels.',
             image = love.graphics.newImage('images/books.png'),
             action = function ()
-                local result = choose('|Look at the books.',
-                                      '@Take the books.',
-                                      '$Talk to the books.',
-                                      'Nevermind.')
+                local result = choosecancelable('|Look at the books.',
+                                                '@Take the books.',
+                                                '$Talk to the books.',
+                                                'Nevermind.')
 
                 if result == 1 then
                     say 'You read one of the spines...\n*Valiant Shield*, by R. Sugar.'
                 elseif result == 2 then
                     say 'Though the library is small,\nit\'s probably not convenient\nto carry.'
-                else
+                elseif result == 3 then
                     say 'You decide to tell the books\na story of your own.\n\'Once upon a time, on a rock\norbiting Earth...\''
                 end
             end
