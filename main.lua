@@ -216,7 +216,7 @@ function primeobjects()
 end
 
 function states.play.init()
-    rooms.enter(rooms.ship)
+    rooms.enter(rooms.intro)
 end
 
 function states.play.update()
